@@ -209,35 +209,34 @@ async function main () {
 
     // Step 1: esbuild
     console.log('==> Step 1: esbuild 打包...')
-    execSync(
-      `npx esbuild src/sea-entry.js --bundle --platform=node --target=node18 --format=cjs --outfile="${bundle}" "--external:node:*" "--external:@docmirror/dev-sidecar/src/modules/plugin/free-eye/*"`,
-      { cwd: ROOT, stdio: 'inherit' },
-    )
+    const esbuild = require('esbuild')
+    await esbuild.build({
+      entryPoints: [path.join(ROOT, 'src/sea-entry.js')],
+      bundle: true,
+      platform: 'node',
+      target: 'node18',
+      format: 'cjs',
+      outfile: bundle,
+      external: [
+        'node:*',
+        // 原生 .node 模块无法打进 SEA bundle，运行时 require 失败会被调用方 try/catch 兜底
+        '@starknt/sysproxy',
+        '@docmirror/dev-sidecar/src/modules/plugin/free-eye/*',
+      ],
+    })
     const bundleSize = (fs.statSync(bundle).size / 1024 / 1024).toFixed(1)
     console.log(`    完成: ${bundle} (${bundleSize}MB)\n`)
-
-    // Step 2: SEA blob
-    console.log('==> Step 2: 生成 SEA blob...')
-    const seaConfig = path.join(DIST, 'sea-config.json')
-    fs.writeFileSync(seaConfig, JSON.stringify({
-      main: bundle,
-      output: blob,
-      disableExperimentalSEAWarning: true,
-    }))
-    execSync(`node --experimental-sea-config "${seaConfig}"`, { stdio: 'inherit' })
-    saveBuildHash(currentHash)
-    console.log()
   }
 
-  // Step 3: 获取校验和 + 确定目标平台
-  console.log('==> Step 3: 获取平台信息和校验和...')
+  // Step 2: 获取校验和 + 确定目标平台
+  console.log('==> Step 2: 获取平台信息和校验和...')
   const { checksums, platforms: availablePlatforms } = await fetchChecksums()
   const targets = buildAll ? availablePlatforms : [currentPlatform]
   console.log(`    目标平台: ${targets.join(', ')}`)
   console.log()
 
-  // Step 4: 并行下载 Node.js 二进制
-  console.log('==> Step 4: 下载 Node.js 二进制（并行）...')
+  // Step 3: 并行下载 Node.js 二进制
+  console.log('==> Step 3: 下载 Node.js 二进制（并行）...')
   const downloadTasks = targets.map(platform => downloadNodeBinary(platform, checksums))
   const results = await Promise.allSettled(downloadTasks)
 
@@ -254,6 +253,24 @@ async function main () {
   }
   if (downloadFailed) process.exit(1)
   console.log()
+
+  // Step 4: 生成 SEA blob
+  // 使用已下载的当前平台 node 二进制生成 blob，保证 blob 与目标运行时（NODE_VERSION）完全一致，
+  // 避免 host node 版本与运行时版本不兼容导致的 "v8::ToLocalChecked Empty MaybeLocal" 崩溃
+  if (!skipBuild) {
+    console.log('==> Step 4: 生成 SEA blob...')
+    const seaConfig = path.join(DIST, 'sea-config.json')
+    fs.writeFileSync(seaConfig, JSON.stringify({
+      main: bundle,
+      output: blob,
+      disableExperimentalSEAWarning: true,
+    }))
+    const blobNode = path.join(DIST, 'node-bin', `node-${currentPlatform}`)
+    const seaNode = fs.existsSync(blobNode) ? blobNode : process.execPath
+    execSync(`"${seaNode}" --experimental-sea-config "${seaConfig}"`, { stdio: 'inherit' })
+    saveBuildHash(currentHash)
+    console.log()
+  }
 
   // Step 5: 注入 blob
   console.log('==> Step 5: 注入 SEA blob...')
@@ -291,6 +308,7 @@ async function main () {
       }
     } catch (e) {
       console.error(`    验证失败: ${e.message}`)
+      process.exit(1)
     }
   }
   console.log()

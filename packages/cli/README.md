@@ -258,7 +258,7 @@ node packages/cli/scripts/build.js
 node packages/cli/scripts/build.js --all
 ```
 
-脚本自动完成：esbuild 打包 → SEA blob 生成 → 下载 Node.js 二进制 → 注入 blob → 验证。
+脚本自动完成：esbuild 打包 → 下载 Node.js 二进制 → SEA blob 生成（使用下载的 node，保证与运行时版本一致）→ 注入 blob → 验证。
 
 ### 输出产物
 

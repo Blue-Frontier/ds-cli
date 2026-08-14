@@ -25,6 +25,8 @@
   },
   "devDependencies": {
     "chai": "^4.5.0",
-    "mocha": "^11.8.0"
+    "esbuild": "^0.28.2",
+    "mocha": "^11.8.0",
+    "postject": "^1.0.0-alpha.6"
   }
 }
