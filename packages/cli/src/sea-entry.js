@@ -6,6 +6,9 @@ const fs = require('node:fs')
 const path = require('node:path')
 const lodash = require('lodash')
 
+// CLI 命令输出与日志分离：默认日志只写文件，stdout 只输出命令结果
+process.env.DEV_SIDECAR_LOG_TO_CONSOLE ??= 'false'
+
 const userBase = path.join(process.env.USERPROFILE || process.env.HOME || '/', '.dev-sidecar')
 const PID_FILE = path.join(userBase, 'ds-cli.pid')
 

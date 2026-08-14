@@ -1,12 +1,14 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
+// CLI 命令输出与日志分离：默认日志只写文件，stdout 只输出命令结果；
+// 调试时可显式设置 DEV_SIDECAR_LOG_TO_CONSOLE=true
+process.env.DEV_SIDECAR_LOG_TO_CONSOLE ??= 'false'
+
 const args = process.argv.slice(2)
 const isDaemon = args.includes('--daemon')
 
 if (isDaemon) {
-  // 守护进程日志只写入文件，不输出到 stdout；调试时可显式设置 DEV_SIDECAR_LOG_TO_CONSOLE=true
-  process.env.DEV_SIDECAR_LOG_TO_CONSOLE ??= 'false'
   runDaemon()
 } else {
   routeCommand(args)

@@ -138,26 +138,24 @@ function mapNodePlatform (nodePlatform) {
 
 // ── 增量构建 ──────────────────────────────────────────
 
+function hashDir (hash, dir) {
+  if (!fs.existsSync(dir)) return
+  for (const f of fs.readdirSync(dir, { recursive: true })) {
+    if (f.endsWith('.js')) {
+      hash.update(fs.readFileSync(path.join(dir, f)))
+    }
+  }
+}
+
 function computeSourceHash () {
   const hash = crypto.createHash('sha256')
   // 入口文件
   hash.update(fs.readFileSync(path.join(ROOT, 'src/sea-entry.js')))
   // src/ 下所有 js 文件
-  const srcDir = path.join(ROOT, 'src')
-  for (const f of fs.readdirSync(srcDir, { recursive: true })) {
-    if (f.endsWith('.js') && f !== 'sea-entry.js') {
-      hash.update(fs.readFileSync(path.join(srcDir, f)))
-    }
-  }
-  // commands 目录
-  const cmdDir = path.join(srcDir, 'commands')
-  if (fs.existsSync(cmdDir)) {
-    for (const f of fs.readdirSync(cmdDir, { recursive: true })) {
-      if (f.endsWith('.js')) {
-        hash.update(fs.readFileSync(path.join(cmdDir, f)))
-      }
-    }
-  }
+  hashDir(hash, path.join(ROOT, 'src'))
+  // 打包进 bundle 的依赖源码（core / mitmproxy）
+  hashDir(hash, path.join(ROOT, '../core/src'))
+  hashDir(hash, path.join(ROOT, '../mitmproxy/src'))
   // package.json（版本号变化也应触发重建）
   hash.update(fs.readFileSync(path.join(ROOT, 'package.json')))
   return hash.digest('hex')
@@ -221,7 +219,9 @@ async function main () {
         'node:*',
         // 原生 .node 模块无法打进 SEA bundle，运行时 require 失败会被调用方 try/catch 兜底
         '@starknt/sysproxy',
-        '@docmirror/dev-sidecar/src/modules/plugin/free-eye/*',
+        // free-eye 为 ESM 模块且依赖源码目录数据，独立可执行文件中不可用；
+        // core 以相对路径 require 它，必须用通配符匹配，包名前缀匹配不到
+        '*free-eye',
       ],
     })
     const bundleSize = (fs.statSync(bundle).size / 1024 / 1024).toFixed(1)
@@ -306,6 +306,9 @@ async function main () {
         console.error(`    验证失败: 期望 v${VERSION}, 实际 ${result}`)
         process.exit(1)
       }
+      // 冒烟测试：加载 core（校验 bundle 完整性，如 free-eye 等外部模块是否正确排除）
+      execSync(`"${verifyBin}" status`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] })
+      console.log('    冒烟测试通过: status')
     } catch (e) {
       console.error(`    验证失败: ${e.message}`)
       process.exit(1)
