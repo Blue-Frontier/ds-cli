@@ -117,6 +117,10 @@ async function startDaemon () {
   const child = fork(childPath, ['--daemon'], {
     detached: true,
     stdio: 'ignore',
+    env: {
+      ...process.env,
+      DEV_SIDECAR_LOG_TO_CONSOLE: 'false', // 后台守护进程日志只写文件
+    },
   })
   child.unref()
 

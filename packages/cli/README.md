@@ -239,6 +239,11 @@ ds-cli plugin stop <name>         # fork 临时子进程停止指定插件后退
 
 日志写入 `~/.dev-sidecar/logs/core.log`，按日期轮转，支持压缩。
 
+**stdout 与文件分离**:
+- 命令执行结果(`status`/`proxy on/off`/`plugin`/`service` 等)输出到 stdout
+- 守护进程运行日志只写文件,不输出到 stdout(通过环境变量 `DEV_SIDECAR_LOG_TO_CONSOLE=false` 控制,`--daemon` 启动时自动设置)
+- 调试守护进程时可临时开启 stdout 日志:`DEV_SIDECAR_LOG_TO_CONSOLE=true ds-cli --daemon`
+
 ## 构建打包
 
 CLI 使用 Node.js SEA（Single Executable Applications）打包为单个可执行文件。
