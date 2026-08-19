@@ -1,37 +1,204 @@
 const fs = require('node:fs')
-const DevSidecar = require('@docmirror/dev-sidecar')
-const jsonApi = require('@docmirror/mitmproxy/src/json')
+const path = require('node:path')
 
-// 启动服务
-const mitmproxyPath = './mitmproxy'
-async function startup () {
-  const banner = fs.readFileSync('./banner.txt')
-  console.log(banner.toString())
+// CLI 命令输出与日志分离：默认日志只写文件，stdout 只输出命令结果；
+// 调试时可显式设置 DEV_SIDECAR_LOG_TO_CONSOLE=true
+process.env.DEV_SIDECAR_LOG_TO_CONSOLE ??= 'false'
 
-  const configPath = './user_config.json5'
-  if (fs.existsSync(configPath)) {
-    const file = fs.readFileSync(configPath)
-    let userConfig
+const args = process.argv.slice(2)
+const isDaemon = args.includes('--daemon')
+
+if (isDaemon) {
+  runDaemon()
+} else {
+  routeCommand(args)
+}
+
+// ── 守护进程模式 ──────────────────────────────────────────
+
+function runDaemon () {
+  const DevSidecar = require('@docmirror/dev-sidecar')
+  const log = require('@docmirror/dev-sidecar/src/utils/util.log-or-console')
+
+  const mitmproxyPath = path.join(__dirname, 'mitmproxy.js')
+
+  const userBasePath = path.join(
+    process.env.USERPROFILE || process.env.HOME || '/',
+    '.dev-sidecar',
+  )
+  const PID_FILE = path.join(userBasePath, 'ds-cli.pid')
+
+  async function startup () {
+    // 获取实例锁，防止 CLI/GUI 重复运行
     try {
-      userConfig = jsonApi.parse(file.toString())
-      console.info(`读取和解析 user_config.json5 成功:${configPath}`)
+      await DevSidecar.api.instance.acquireLock({ log })
     } catch (e) {
-      console.error(`读取或解析 user_config.json5 失败: ${configPath}, error:`, e)
-      userConfig = {}
+      log.error('另一个 dev-sidecar 实例正在运行，CLI 启动失败:', e.message)
+      process.exit(1)
     }
-    DevSidecar.api.config.set(userConfig)
+    try {
+      await DevSidecar.api.instance.writeInstance({
+        type: 'cli',
+        pid: process.pid,
+        command: process.argv.join(' '),
+        startTime: new Date().toISOString(),
+      })
+    } catch (e) {
+      log.error('写入 running.json 实例信息失败:', e.message)
+    }
+
+    const banner = fs.readFileSync(path.join(__dirname, 'banner.txt'))
+    log.info(banner.toString())
+
+    DevSidecar.api.config.reload()
+    await DevSidecar.api.startup({ mitmproxyPath })
+    await DevSidecar.api.config.startAutoDownloadRemoteConfig()
+    log.info('dev-sidecar 已启动')
   }
 
-  await DevSidecar.api.startup({ mitmproxyPath })
-  console.log('dev-sidecar 已启动')
+  async function onClose () {
+    log.info('on sigint')
+    await DevSidecar.api.shutdown()
+    log.info('on closed')
+    cleanupFiles()
+    process.exit(0)
+  }
+
+  function cleanupFiles () {
+    try { if (fs.existsSync(PID_FILE)) fs.unlinkSync(PID_FILE) } catch {}
+  }
+
+  process.on('SIGINT', onClose)
+  process.on('SIGTERM', onClose)
+  process.on('exit', cleanupFiles)
+
+  startup()
 }
 
-async function onClose () {
-  console.log('on sigint ')
-  await DevSidecar.api.shutdown()
-  console.log('on closed ')
-  process.exit(0)
-}
-process.on('SIGINT', onClose)
+// ── 帮助信息 ──────────────────────────────────────────────
 
-startup()
+function printHelp () {
+  console.log(`用法: ds-cli <命令> [选项]
+
+命令:
+  start                     启动守护进程
+  stop                      停止守护进程
+  restart                   重启守护进程
+  status                    显示运行状态
+  version                   显示版本号
+  proxy on                  开启系统代理
+  proxy off                 关闭系统代理
+  plugin start <name>       启用插件 (git/node/pip/overwall/free_eye)
+  plugin stop <name>        禁用插件
+  service install           注册开机自启动
+  service uninstall         移除开机自启动
+  help                      显示此帮助信息
+
+选项:
+  --gui                     仅操作 GUI
+  --all                     同时操作 CLI 和 GUI`)
+}
+
+// ── 命令路由 ──────────────────────────────────────────────
+
+function routeCommand (args) {
+  const flags = args.filter(a => a.startsWith('--'))
+  const positional = args.filter(a => !a.startsWith('--'))
+  const command = positional[0] || 'start'
+  const value = positional[1]
+
+  const guiMode = flags.includes('--gui')
+  const allMode = flags.includes('--all')
+
+  const runCli = !guiMode || allMode
+  const runGui = guiMode || allMode
+
+  switch (command) {
+    case 'start': {
+      const { startDaemon } = require('./commands/start')
+      const { startGui } = require('./commands/gui')
+      const tasks = []
+      if (runCli) tasks.push(startDaemon())
+      if (runGui) tasks.push(Promise.resolve(startGui()))
+      Promise.all(tasks).then(() => process.exit(0))
+      break
+    }
+    case 'stop': {
+      const { stopDaemon } = require('./commands/stop')
+      const { stopGui } = require('./commands/gui')
+      if (runCli) stopDaemon()
+      if (runGui) stopGui()
+      break
+    }
+    case 'restart': {
+      const { restartDaemon } = require('./commands/restart')
+      const { restartGui } = require('./commands/gui')
+      const tasks = []
+      if (runCli) tasks.push(restartDaemon())
+      if (runGui) tasks.push(Promise.resolve(restartGui()))
+      Promise.all(tasks).then(() => process.exit(0))
+      break
+    }
+    case 'status': {
+      const { showStatus } = require('./commands/status')
+      showStatus().then(() => process.exit(0))
+      break
+    }
+    case 'version': {
+      const pkgPath = path.join(__dirname, '../package.json')
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+      console.log(pkg.version)
+      break
+    }
+    case 'plugin': {
+      const { handlePlugin } = require('./commands/plugin')
+      handlePlugin(value, positional[2])
+      break
+    }
+    case 'proxy': {
+      const { readConfig, writeConfig } = require('./commands/gui')
+      if (value === 'on' || value === 'off') {
+        // 持久化到 config.json
+        const config = readConfig()
+        config.proxy = config.proxy || {}
+        config.proxy.enabled = value === 'on'
+        writeConfig(config)
+
+        // fork worker 立即设置/取消系统代理
+        const { fork } = require('node:child_process')
+        const workerPath = path.join(__dirname, 'proxy-worker.js')
+        const child = fork(workerPath, [value])
+        child.on('exit', (code) => {
+          process.exit(code || 0)
+        })
+      } else {
+        console.error('用法: ds-cli proxy <on|off>')
+        process.exit(1)
+      }
+      break
+    }
+    case 'service': {
+      const { install, uninstall } = require('./commands/service')
+      if (value === 'install') install()
+      else if (value === 'uninstall') uninstall()
+      else {
+        console.error('用法: ds-cli service <install|uninstall>')
+        process.exit(1)
+      }
+      break
+    }
+    case 'help': {
+      printHelp()
+      break
+    }
+    default:
+      if (flags.includes('--help') || flags.includes('-h')) {
+        printHelp()
+      } else {
+        console.error(`未知命令: ${command}`)
+        printHelp()
+        process.exit(1)
+      }
+      process.exit(1)
+  }
+}
