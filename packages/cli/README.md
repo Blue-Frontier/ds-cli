@@ -1,11 +1,11 @@
-# @docmirror/dev-sidecar-cli
+# @blue-frontier/ds-cli
 
 开发者边车（Dev Sidecar）命令行版本，为 GitHub、npm、Docker Hub 等境外站点提供加速代理。
 
 ## 安装
 
 ```bash
-npm install -g @docmirror/dev-sidecar-cli
+npm install -g @blue-frontier/ds-cli
 ```
 
 ## 开发
@@ -20,7 +20,7 @@ npm install -g @docmirror/dev-sidecar-cli
 在仓库根目录执行，安装 CLI 及其依赖（core、mitmproxy），不包含 GUI：
 
 ```bash
-pnpm install --filter @docmirror/dev-sidecar-cli...
+pnpm install --filter @blue-frontier/ds-cli...
 ```
 
 ### 运行
@@ -33,14 +33,14 @@ node packages/cli/cli.js
 
 ```bash
 # 运行 CLI 测试
-pnpm --filter @docmirror/dev-sidecar-cli test
+pnpm --filter @blue-frontier/ds-cli test
 
 # 运行测试并查看覆盖率
-npx nyc --reporter=text pnpm --filter @docmirror/dev-sidecar-cli test
+npx nyc --reporter=text pnpm --filter @blue-frontier/ds-cli test
 
 # 运行全部包的测试
-pnpm --filter @docmirror/dev-sidecar test
-pnpm --filter @docmirror/mitmproxy test
+pnpm --filter @blue-frontier/dev-sidecar test
+pnpm --filter @blue-frontier/mitmproxy test
 ```
 
 ### 项目结构
@@ -278,7 +278,7 @@ node packages/cli/scripts/build.js --all
 ## 测试
 
 ```bash
-pnpm --filter @docmirror/dev-sidecar-cli test
+pnpm --filter @blue-frontier/ds-cli test
 ```
 
 测试覆盖率（nyc）：

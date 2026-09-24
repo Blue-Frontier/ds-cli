@@ -1,0 +1,6 @@
+packages:
+  - packages/*
+  - vendor/ds-core/packages/*
+  - '!**/test/**'
+
+shamefullyHoist: true

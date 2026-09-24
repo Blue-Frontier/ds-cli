@@ -1,0 +1,22 @@
+{
+  "name": "ds-cli-parent",
+  "private": true,
+  "description": "DevSidecar CLI (ds-cli) — embeds ds-core via git submodule",
+  "author": "Blue-Frontier",
+  "license": "MPL-2.0",
+  "packageManager": "pnpm@11.21.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Blue-Frontier/ds-cli.git"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "pnpm --filter @blue-frontier/ds-cli test",
+    "submodule:init": "git submodule update --init --recursive"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^3.16.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-format": "^0.1.3"
+  }
+}
