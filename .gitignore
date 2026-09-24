@@ -1,7 +1,6 @@
 node_modules/
 dist/
 dist_electron/
-vendor/ds-core/
-!vendor/README.md
 *.log
 .DS_Store
+!vendor/README.md
