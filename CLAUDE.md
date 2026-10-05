@@ -29,12 +29,15 @@ pnpm lint
 
 ## 依赖解析
 
-`pnpm-workspace.yaml` 包含 `vendor/ds-core/packages/*`，因此：
+`vendor/ds-core` 已目录扁平化（`core/`、`mitmproxy/` 位于子模块根下），因此本仓用
+`packages/core`、`packages/mitmproxy` 两个**符号链接**指向它们，`pnpm-workspace.yaml` 收录 `packages/*`：
 
-- `@blue-frontier/dev-sidecar`
-- `@blue-frontier/mitmproxy`
+- `@blue-frontier/dev-sidecar` ← `packages/core`
+- `@blue-frontier/mitmproxy`   ← `packages/mitmproxy`
 
-通过 **workspace** 解析到 submodule 内目录，不要改成 `workspace:*` 以外的 npm 版本号。
+符号链接由 git 跟踪（mode 120000），checkout 会自动重建。不要把 CLI 内的 `packages/core/...`
+相对引用改成 `vendor/...`，也不要改 `pnpm-workspace.yaml` 的 glob 去直接匹配子模块目录。
+依赖一律保持 `workspace:*`。
 
 ## 提交
 

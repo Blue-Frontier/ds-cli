@@ -1,6 +1,6 @@
 {
   "name": "@blue-frontier/ds-cli",
-  "version": "2.2.1",
+  "version": "2.3.1",
   "private": true,
   "description": "给开发者的加速代理工具",
   "author": "docmirror.cn",
@@ -17,7 +17,9 @@
   },
   "scripts": {
     "start": "node ./src",
-    "test": "mocha"
+    "test": "mocha",
+    "build:local": "node scripts/local-build-version.mjs",
+    "version:local": "node scripts/local-build-version.mjs --print"
   },
   "dependencies": {
     "@blue-frontier/dev-sidecar": "workspace:*",
@@ -27,6 +29,27 @@
     "chai": "^4.5.0",
     "esbuild": "^0.28.2",
     "mocha": "^11.8.0",
-    "postject": "^1.0.0-alpha.6"
+    "postject": "^1.0.0-alpha.6",
+    "tar": "^7.5.13"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "src",
+    "cli.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Blue-Frontier/ds-cli.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Blue-Frontier/ds-cli/tree/main/packages/cli",
+  "bugs": {
+    "url": "https://github.com/Blue-Frontier/ds-cli/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   }
 }
