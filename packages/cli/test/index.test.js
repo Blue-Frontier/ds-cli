@@ -115,7 +115,11 @@ describe('index', function () {
   describe('version command', function () {
     it('should display version number', function () {
       const out = execSync(`node ${cliPath} version`, { encoding: 'utf-8' }).trim()
-      assert.match(out, /^\d+\.\d+\.\d+$/)
+      const lines = out.split(/\r?\n/)
+      // 第一行是裸版本号（脚本友好，打包脚本 scripts/build.js Step 6 也据此校验）
+      assert.match(lines[0], /^\d+\.\d+\.\d+$/)
+      // 第二行起是内嵌内核信息：把 CLI 的版本号与 GUI/内核区分开，并给出 ds-core 提交 SHA
+      assert.match(lines[1], /内核/)
     })
   })
 

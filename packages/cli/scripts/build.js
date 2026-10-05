@@ -17,6 +17,17 @@ const ROOT = path.resolve(__dirname, '..')
 const DIST = path.join(ROOT, 'dist')
 const VERSION = require(path.join(ROOT, 'package.json')).version
 const NODE_VERSION = 'v24.14.0'
+
+/** 内嵌内核信息：烘焙进产物，供 `ds-cli version` 展示（SEA 单文件里没有子模块可读） */
+const KERNEL_DIR = path.resolve(ROOT, '../core')
+const KERNEL_VERSION = (() => {
+  try { return require(path.join(KERNEL_DIR, 'package.json')).version } catch { return null }
+})()
+const KERNEL_SHA = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD', { cwd: KERNEL_DIR, encoding: 'utf-8' }).trim()
+  } catch { return null }
+})()
 const SENTINEL = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'
 
 /** 下载停滞判定与重试次数：CI 上一次卡住的下载会把 job 拖到超时，必须显式兜住 */
@@ -217,6 +228,13 @@ function computeSourceHash () {
   hashDir(hash, path.join(ROOT, '../mitmproxy/src'))
   // package.json（版本号变化也应触发重建）
   hash.update(fs.readFileSync(path.join(ROOT, 'package.json')))
+  // 内嵌内核信息：内核只改非 src 文件（如它自己的 package.json）时 src 哈希不变，
+  // 但烘进产物的版本/SHA 已经变了 —— 必须一起纳入，否则会打出带过期 SHA 的产物。
+  hash.update(String(KERNEL_VERSION || ''))
+  hash.update(String(KERNEL_SHA || ''))
+  try {
+    hash.update(fs.readFileSync(path.join(KERNEL_DIR, 'package.json')))
+  } catch {}
   return hash.digest('hex')
 }
 
@@ -285,6 +303,10 @@ async function main () {
     const esbuild = require('esbuild')
     await esbuild.build({
       entryPoints: [path.join(ROOT, 'src/sea-entry.js')],
+      define: {
+        __DS_KERNEL_VERSION__: JSON.stringify(KERNEL_VERSION || ''),
+        __DS_KERNEL_SHA__: JSON.stringify(KERNEL_SHA || ''),
+      },
       bundle: true,
       platform: 'node',
       target: 'node18',
@@ -393,11 +415,15 @@ async function main () {
   const verifyBin = path.join(DIST, getOutputName(currentPlatform))
   if (fs.existsSync(verifyBin)) {
     try {
-      const result = execSync(`"${verifyBin}" version`, { encoding: 'utf-8' }).trim()
+      // version 现在还会输出内嵌内核信息，这里只取第一行（裸版本号）比较
+      const out = execSync(`"${verifyBin}" version`, { encoding: 'utf-8' })
+      const result = (out.trim().split(/\r?\n/)[0] || '').trim()
       if (result === VERSION) {
         console.log(`    验证通过: v${result}`)
+        console.log(`    内核: ${KERNEL_VERSION || '未知'}${KERNEL_SHA ? ' @ ' + KERNEL_SHA : ''}`)
       } else {
         console.error(`    验证失败: 期望 v${VERSION}, 实际 ${result}`)
+        console.error(`    完整输出:\n${out}`)
         process.exit(1)
       }
       // 冒烟测试：加载 core（校验 bundle 完整性，如 free-eye 等外部模块是否正确排除）

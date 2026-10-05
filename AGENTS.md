@@ -1,4 +1,4 @@
-# CLAUDE.md — ds-cli
+# AGENTS.md — ds-cli
 
 本仓库是 DevSidecar **命令行**（`Blue-Frontier/ds-cli`），不是 monorepo。
 

@@ -185,7 +185,10 @@ function routeCommand (args) {
     case 'version': {
       const pkgPath = path.join(__dirname, '../package.json')
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+      const { getKernelInfo } = require('./kernel-info')
+      const kernel = getKernelInfo()
       console.log(pkg.version)
+      console.log(`内核  @blue-frontier/dev-sidecar ${kernel.version || '未知'}${kernel.sha ? `（Blue-Frontier/ds-core @ ${kernel.sha}）` : ''}`)
       break
     }
     case 'plugin': {

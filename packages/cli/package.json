@@ -1,8 +1,8 @@
 {
   "name": "@blue-frontier/ds-cli",
-  "version": "2.3.1",
+  "version": "1.0.0",
   "private": true,
-  "description": "给开发者的加速代理工具",
+  "description": "DevSidecar 命令行（独立发行版）",
   "author": "docmirror.cn",
   "license": "MPL-2.0",
   "keywords": [

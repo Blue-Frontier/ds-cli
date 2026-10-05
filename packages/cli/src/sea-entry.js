@@ -279,10 +279,13 @@ async function routeCommand (args) {
       break
     }
     case 'version': {
-      // 必须读 package.json：打包脚本 scripts/build.js Step 6 会执行 <产物> version 并与
-      // package.json 的 version 严格比较，写死版本号会让每一次 CI 打包都在这一步失败。
+      // 第一行必须是裸版本号：打包脚本 Step 6 执行 <产物> version 后只取第一行与 package.json 比较
+      // （早先的整串严格比较在输出一丰富时就会误判）。版本号必须读 package.json，
       // esbuild 会把该 JSON 内联进 bundle，因此注入的本地/CI 版本号都能正确带入。
+      const { getKernelInfo } = require('./kernel-info')
+      const kernel = getKernelInfo()
       console.log(require('../package.json').version)
+      console.log(`内核  @blue-frontier/dev-sidecar ${kernel.version || '未知'}${kernel.sha ? `（Blue-Frontier/ds-core @ ${kernel.sha}）` : ''}`)
       break
     }
     case 'plugin': {

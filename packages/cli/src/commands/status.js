@@ -52,6 +52,10 @@ function printStatus (status) {
   } catch {}
 
   console.log('dev-sidecar 运行状态:')
+  // 标明这是 CLI、以及内嵌内核的版本与 SHA，避免与 GUI 的版本号混淆
+  const { getKernelInfo } = require('../kernel-info')
+  const kernelInfo = getKernelInfo()
+  console.log(`  版本:      ds-cli ${require('../../package.json').version}（内核 ${kernelInfo.version || '未知'}${kernelInfo.sha ? ' @ ' + kernelInfo.sha : ''}）`)
   console.log(`  代理服务:  ${serverRunning ? '运行中' : '未运行'}`)
   console.log(`  系统代理:  ${proxyEnabled ? '已开启' : '未开启'}`)
   console.log(`  开机启动:  ${autoStart}`)
