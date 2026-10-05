@@ -39,10 +39,14 @@ pnpm lint
 相对引用改成 `vendor/...`，也不要改 `pnpm-workspace.yaml` 的 glob 去直接匹配子模块目录。
 依赖一律保持 `workspace:*`。
 
-## 提交
+## 提交与推送
 
-- AI 可 `git add`；**签名提交由人类执行**
-- 改内核 → 先在 ds-core 提交并 tag → 本仓只提交 `vendor/ds-core` 指针 + 必要的 CLI 适配
+- AI 可 `git add`、整理改动、跑验证；**签名提交由人类执行**
+- **推送由 AI 负责**：人类提交后告知 AI，AI 执行 `git push` 并验证
+- 改内核 → 先在 ds-core 提交并由 AI 推送 → 本仓再提交 `vendor/ds-core` 指针 + 必要的 CLI 适配
+- **顺序不可颠倒**：ds-core 的提交未推送前，本仓不得提交指向它的子模块指针，
+  否则远端出现悬空引用，任何人 `git clone --recurse-submodules` 都会失败（已发生过两次）
+- 每次推送后 AI 需验证：远端 main 与本地 HEAD 一致，且全新 `clone --recurse-submodules` 能成功
 
 ## 与兄弟仓
 
