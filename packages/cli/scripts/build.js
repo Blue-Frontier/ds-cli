@@ -420,7 +420,7 @@ async function main () {
       const result = (out.trim().split(/\r?\n/)[0] || '').trim()
       if (result === VERSION) {
         console.log(`    验证通过: v${result}`)
-        console.log(`    内核: ${KERNEL_VERSION || '未知'}${KERNEL_SHA ? ' @ ' + KERNEL_SHA : ''}`)
+        console.log(`    内核: ds-core@${KERNEL_SHA || '未知'}`)
       } else {
         console.error(`    验证失败: 期望 v${VERSION}, 实际 ${result}`)
         console.error(`    完整输出:\n${out}`)

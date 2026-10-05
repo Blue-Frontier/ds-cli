@@ -1,5 +1,9 @@
 /**
- * 内嵌内核（ds-core）的版本与提交 SHA。
+ * 内嵌内核（ds-core）的身份：**提交 SHA**（短 SHA 对外展示，长 SHA 供排障对照）。
+ *
+ * 注意：内核 package.json 里的 version 已废弃，仅有形式作用（包必须有个版本号），
+ * 不得在任何面向最终用户的地方展示 —— 它的历史来源是抄历史 monorepo 的应用版本号，
+ * 与内核实际内容无关，展示出来只会误导。
  *
  * SEA 单文件里没有子模块目录可读，因此构建期由 scripts/build.js 通过 esbuild 的 define 注入
  * __DS_KERNEL_VERSION__ / __DS_KERNEL_SHA__；从源码直接运行时没有注入，回落到读本地子模块。

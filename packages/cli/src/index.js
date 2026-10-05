@@ -188,7 +188,7 @@ function routeCommand (args) {
       const { getKernelInfo } = require('./kernel-info')
       const kernel = getKernelInfo()
       console.log(pkg.version)
-      console.log(`内核  @blue-frontier/dev-sidecar ${kernel.version || '未知'}${kernel.sha ? `（Blue-Frontier/ds-core @ ${kernel.sha}）` : ''}`)
+      console.log(`内核  ds-core@${kernel.sha || '未知'}`)
       break
     }
     case 'plugin': {
