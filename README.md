@@ -32,12 +32,12 @@ pnpm --filter @blue-frontier/ds-cli test
 
 `vendor/ds-core` → `https://github.com/Blue-Frontier/ds-core.git`
 
-发布/构建时 **钉 tag**，不要让 release 分支跟踪 core 的 branch tip。
+发布/构建时钉**精确提交 SHA**，不需要打 tag。父仓记录的本就是子模块的 gitlink，用 tag 反而会随内核仓的移动而指向别处。内核 `package.json` 里的 version 已废弃，不对外展示。
 
 ```bash
 # 升级内核
 cd vendor/ds-core
-git fetch && git checkout vX.Y.Z
+git fetch && git checkout <内核提交 SHA>
 cd ../..
 git add vendor/ds-core
 ```

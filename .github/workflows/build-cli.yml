@@ -72,7 +72,9 @@ jobs:
         with:
           name: ds-cli-${{ github.sha }}
           path: |
-            packages/cli/dist/ds-cli-*
+            packages/cli/dist/ds-cli-*-windows-*.exe
+            packages/cli/dist/ds-cli-*-linux-*
+            packages/cli/dist/ds-cli-*-macos-*
             packages/cli/dist/sysproxy.exe
             packages/cli/dist/EnableLoopback.exe
             packages/cli/dist/SHA256SUMS.txt
